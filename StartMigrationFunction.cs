@@ -15,26 +15,39 @@ public class StartMigrationFunction(ILogger<StartMigrationFunction> logger, IMig
     [Function(nameof(StartMigrationFunction))]
     public async Task<HttpResponseData> RunAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "migrations")] HttpRequestData req)
     {
-        logger.LogInformation("C# HTTP trigger function processed a request.");
+        try
+        {
+            var request = await req.ReadFromJsonAsync<StartMigrationRequest>();
 
-        var request =
-           await req.ReadFromJsonAsync<StartMigrationRequest>();
+            Guid runId = await migrationService.StartMigrationAsync(request!);
 
-        Guid runId =
-            await migrationService.StartMigrationAsync(request!);
+            var response = new StartMigrationResponse
+            {
+                RunId = runId,
+                StartedAtUtc = DateTime.UtcNow
+            };
 
-        var response =
-           new StartMigrationResponse
-           {
-               RunId = runId,
-               StartedAtUtc = DateTime.UtcNow
-           };
+            var httpResponse = req.CreateResponse(HttpStatusCode.OK);
+            await httpResponse.WriteAsJsonAsync(response);
 
-        var httpResponse =
-         req.CreateResponse(HttpStatusCode.OK);
-         
-        await httpResponse.WriteAsJsonAsync(response);
+            return httpResponse;
+        }
+        catch (Exception ex)
+        {
+            // 1. Log the full error to Azure Application Insights / Log Stream
+            logger.LogError(ex, "An error occurred while starting the migration.");
 
-        return httpResponse;
+            // 2. Return a 500 status code but include the actual error details in the response body
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+            
+            await errorResponse.WriteAsJsonAsync(new 
+            { 
+                Error = "Migration failed", 
+                Message = ex.Message,
+                StackTrace = ex.StackTrace // Note: Remove StackTrace in production for security
+            });
+
+            return errorResponse;
+        }
     }
 }
