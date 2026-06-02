@@ -1,0 +1,94 @@
+using Azure.Identity;
+using Azure.ResourceManager;
+using Azure.ResourceManager.DataFactory;
+using Azure.ResourceManager.DataFactory.Models;
+using AzureFunctionPOC.Models;
+using AzureFunctionPOC.Services;
+using Microsoft.Extensions.Configuration;
+
+namespace AzureFunctionPOC.Services;
+
+public sealed class ADFMigrationService(IConfiguration configuration) : IMigrationService
+{
+    public Task<MigrationStatus?> GetStatusAsync(string runId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Guid> StartMigrationAsync(
+        StartMigrationRequest request)
+    {
+        string subscriptionId =
+            configuration["SubscriptionId"]!;
+
+        string resourceGroup =
+            configuration["ResourceGroup"]!;
+
+        string factoryName =
+            configuration["DataFactoryName"]!;
+
+        string pipelineName =
+            configuration["PipelineName"]!;
+
+        var credential =
+            new DefaultAzureCredential();
+
+        var armClient =
+            new ArmClient(
+                credential,
+                subscriptionId);
+
+        var factoryId =
+  DataFactoryResource.CreateResourceIdentifier(
+      subscriptionId,
+      resourceGroup,
+      factoryName);
+
+        var factory =
+             await armClient
+                 .GetDataFactoryResource(factoryId)
+                 .GetAsync();
+
+        var pipeline =
+await factory.Value
+.GetDataFactoryPipelineAsync(
+   pipelineName);
+
+        // var client =
+        //     new DataFactoryManagementClient(
+        //         subscriptionId,
+        //         credential);
+
+        var parameters = new Dictionary<string, BinaryData>
+        {
+            ["TenantId"] =
+                BinaryData.FromString(request.TenantId.ToString()),
+
+            ["FilialNr"] =
+                BinaryData.FromString(request.FilialNr.ToString()),
+
+            ["ShirName"] =
+                BinaryData.FromString(request.ShirName),
+
+            ["ServerName"] =
+                BinaryData.FromString(request.ServerName),
+
+            ["DatabaseName"] =
+                BinaryData.FromString(request.DatabaseName),
+
+            ["UserName"] =
+                BinaryData.FromString(request.UserName),
+
+            ["Password"] =
+                BinaryData.FromString(request.Password)
+        };
+
+        var run =
+            await pipeline.Value.CreateRunAsync(parameters);
+
+        return run.Value.RunId;
+    }
+
+
+    
+}
