@@ -62,29 +62,28 @@ await factory.Value
         var parameters = new Dictionary<string, BinaryData>
         {
             ["TenantId"] =
-                BinaryData.FromString(request.TenantId.ToString()),
+                BinaryData.FromObjectAsJson(request.TenantId.ToString()),
 
             ["FilialNr"] =
-                BinaryData.FromString(request.FilialNr.ToString()),
+                BinaryData.FromObjectAsJson(request.FilialNr.ToString()),
 
             ["ShirName"] =
-                BinaryData.FromString(request.ShirName),
+                BinaryData.FromObjectAsJson(request.ShirName),
 
             ["ServerName"] =
-                BinaryData.FromString(request.ServerName),
+                BinaryData.FromObjectAsJson(request.ServerName),
 
             ["DatabaseName"] =
-                BinaryData.FromString(request.DatabaseName),
+                BinaryData.FromObjectAsJson(request.DatabaseName),
 
             ["UserName"] =
-                BinaryData.FromString(request.UserName),
+                BinaryData.FromObjectAsJson(request.UserName),
 
             ["Password"] =
-                BinaryData.FromString(request.Password)
+                BinaryData.FromObjectAsJson(request.Password)
         };
 
-        var run =
-            await pipeline.Value.CreateRunAsync(parameters);
+        var run = await pipeline.Value.CreateRunAsync(parameters);
 
         return run.Value.RunId;
     }
