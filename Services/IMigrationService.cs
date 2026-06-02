@@ -6,7 +6,8 @@ public interface IMigrationService
 {
     // Task<string> StartMigrationAsync();
 
-    Task<MigrationStatus?> GetStatusAsync(string runId);
+    Task<MigrationStatusResponse?> GetStatusAsync(Guid runId);
+    
     public Task<Guid> StartMigrationAsync(
         StartMigrationRequest request);
 }

@@ -10,9 +10,48 @@ namespace AzureFunctionPOC.Services;
 
 public sealed class ADFMigrationService(IConfiguration configuration) : IMigrationService
 {
-    public Task<MigrationStatus?> GetStatusAsync(string runId)
+    public async Task<MigrationStatusResponse?> GetStatusAsync(Guid runId)
     {
-        throw new NotImplementedException();
+        string subscriptionId =
+           configuration["SubscriptionId"]!;
+
+        string resourceGroup =
+            configuration["ResourceGroup"]!;
+
+        string factoryName =
+            configuration["DataFactoryName"]!;
+
+        string pipelineName =
+            configuration["PipelineName"]!;
+
+        var credential = new DefaultAzureCredential();
+
+        var armClient = new ArmClient(
+            credential,
+            subscriptionId);
+
+        var factoryId =
+            DataFactoryResource.CreateResourceIdentifier(
+                subscriptionId,
+                resourceGroup,
+                factoryName);
+
+        var factory =
+            await armClient
+                .GetDataFactoryResource(factoryId)
+                .GetAsync();
+
+        var pipelineRun =
+            await factory.Value.GetPipelineRunAsync(runId.ToString());
+
+        return new MigrationStatusResponse
+        {
+            RunId = runId,
+            Status = pipelineRun.Value.Status,
+            RunStartOn = pipelineRun.Value.RunStartOn,
+            RunEndOn = pipelineRun.Value.RunEndOn,
+            Message = pipelineRun.Value.Message
+        };
     }
 
     public async Task<Guid> StartMigrationAsync(
@@ -89,5 +128,5 @@ await factory.Value
     }
 
 
-    
+
 }
