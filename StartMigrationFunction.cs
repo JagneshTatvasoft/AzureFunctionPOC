@@ -34,10 +34,8 @@ public class StartMigrationFunction(ILogger<StartMigrationFunction> logger, IMig
         }
         catch (Exception ex)
         {
-            // 1. Log the full error to Azure Application Insights / Log Stream
             logger.LogError(ex, "An error occurred while starting the migration.");
 
-            // 2. Return a 500 status code but include the actual error details in the response body
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             
             await errorResponse.WriteAsJsonAsync(new 

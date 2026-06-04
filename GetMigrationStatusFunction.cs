@@ -7,42 +7,6 @@ using Microsoft.Extensions.Logging;
 
 public class GetMigrationStatusFunction(IMigrationService migrationService, ILogger<GetMigrationStatusFunction> logger)
 {
-
-    // [Function(nameof(GetMigrationStatusFunction))]
-    // public async Task<HttpResponseData> Run(
-    //     [HttpTrigger(
-    //         AuthorizationLevel.Anonymous,
-    //          "get",
-    //         Route = "migrations/{runId}")]
-    //     HttpRequestData req,
-    //     string runId)
-    // {
-    //     // var query =
-    //     //     System.Web.HttpUtility.ParseQueryString(
-    //     //         req.Url.Query);
-
-    //     // string runId =
-    //     //     query["runId"] ?? string.Empty;
-
-    //     var status =
-    //         await migrationService
-    //             .GetStatusAsync(runId);
-
-    //     if (status == null)
-    //     {
-    //         return req.CreateResponse(
-    //             HttpStatusCode.NotFound);
-    //     }
-
-    //     var response =
-    //         req.CreateResponse(HttpStatusCode.OK);
-
-    //     await response.WriteAsJsonAsync(status);
-
-    //     return response;
-    // }
-
-
  [Function(nameof(GetMigrationStatusFunction))]
     public async Task<HttpResponseData> RunAsync(
         [HttpTrigger(

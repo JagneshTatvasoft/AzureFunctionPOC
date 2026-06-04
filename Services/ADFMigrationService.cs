@@ -1,3 +1,5 @@
+using Azure;
+using Azure.Core;
 using Azure.Identity;
 using Azure.ResourceManager;
 using Azure.ResourceManager.DataFactory;
@@ -24,33 +26,61 @@ public sealed class ADFMigrationService(IConfiguration configuration) : IMigrati
         string pipelineName =
             configuration["PipelineName"]!;
 
-        var credential = new DefaultAzureCredential();
+        DefaultAzureCredential credential = new DefaultAzureCredential();
 
-        var armClient = new ArmClient(
+        ArmClient armClient = new ArmClient(
             credential,
             subscriptionId);
 
-        var factoryId =
+        ResourceIdentifier factoryId =
             DataFactoryResource.CreateResourceIdentifier(
                 subscriptionId,
                 resourceGroup,
                 factoryName);
 
-        var factory =
+        DataFactoryResource factory =
             await armClient
                 .GetDataFactoryResource(factoryId)
                 .GetAsync();
 
-        var pipelineRun =
-            await factory.Value.GetPipelineRunAsync(runId.ToString());
+        // 1. Get the main pipeline run status
+        DataFactoryPipelineRunInfo pipelineRun = await factory.GetPipelineRunAsync(runId.ToString());
 
+        DateTimeOffset start = (pipelineRun.RunStartOn ?? DateTimeOffset.UtcNow).AddHours(-1);
+        DateTimeOffset end = DateTimeOffset.UtcNow.AddHours(1);
+
+        RunFilterContent filter = new RunFilterContent(start, end);
+
+        AsyncPageable<PipelineActivityRunInformation> activityRunsPageable = factory.GetActivityRunAsync(
+                  runId: runId.ToString(),
+                  content: filter
+              );
+
+        List<ActivityStatusResponse> activitiesList = new List<ActivityStatusResponse>();
+
+        await foreach (var activityRun in activityRunsPageable)
+        {
+            activitiesList.Add(new ActivityStatusResponse
+            {
+                Name = activityRun.ActivityName,
+                Type = activityRun.ActivityType,
+                Status = activityRun.Status,
+                StartedAt = activityRun.StartOn,
+                FinishedAt = activityRun.EndOn,
+                DurationMs = activityRun.DurationInMs,
+                Error = activityRun.Error?.ToString() 
+            });
+        }
+
+        // 5. Return the newly structured response
         return new MigrationStatusResponse
         {
             RunId = runId,
-            Status = pipelineRun.Value.Status,
-            RunStartOn = pipelineRun.Value.RunStartOn,
-            RunEndOn = pipelineRun.Value.RunEndOn,
-            Message = pipelineRun.Value.Message
+            PipelineStatus = pipelineRun.Status, 
+            RunStartOn = pipelineRun.RunStartOn,
+            RunEndOn = pipelineRun.RunEndOn,    
+            Message = pipelineRun.Message,
+            Activities = activitiesList
         };
     }
 
@@ -92,11 +122,6 @@ public sealed class ADFMigrationService(IConfiguration configuration) : IMigrati
 await factory.Value
 .GetDataFactoryPipelineAsync(
    pipelineName);
-
-        // var client =
-        //     new DataFactoryManagementClient(
-        //         subscriptionId,
-        //         credential);
 
         var parameters = new Dictionary<string, BinaryData>
         {
