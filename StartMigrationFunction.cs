@@ -42,7 +42,7 @@ public class StartMigrationFunction(ILogger<StartMigrationFunction> logger, IMig
             { 
                 Error = "Migration failed", 
                 Message = ex.Message,
-                StackTrace = ex.StackTrace // Note: Remove StackTrace in production for security
+                StackTrace = ex.StackTrace 
             });
 
             return errorResponse;
